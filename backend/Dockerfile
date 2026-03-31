@@ -16,9 +16,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install production dependencies only
+# Install production dependencies + prisma CLI
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production && npm install -g prisma
 
 # Copy built files and prisma
 COPY --from=builder /app/dist ./dist
@@ -29,12 +29,7 @@ COPY prisma ./prisma
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Create entrypoint script
-RUN echo '#!/bin/sh' > /entrypoint.sh && \
-    echo 'npx prisma migrate deploy' >> /entrypoint.sh && \
-    echo 'exec node dist/main.js' >> /entrypoint.sh && \
-    chmod +x /entrypoint.sh
-
 EXPOSE 3000
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Run migrations and start app
+CMD sh -c "prisma migrate deploy --schema=prisma/schema.prisma && node dist/main.js"

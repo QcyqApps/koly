@@ -1,0 +1,141 @@
+{
+  "name": "AI Chat - Koly",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b9ccfed8-c92b-4ba1-8087-ee55e423dac8",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-128, 0],
+      "webhookId": "ai-chat-webhook",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 1500
+        }
+      },
+      "id": "785a95a4-ab7f-4987-810b-cedc2d525129",
+      "name": "Anthropic Chat",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [80, 192],
+      "credentials": {
+        "anthropicApi": {
+          "id": "8SwNgxGFXMIaf4hs",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.sessionId || 'default' }}",
+        "contextWindowLength": 20
+      },
+      "id": "memory-buffer-node",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [80, 380]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "=Jestes Koly — osobistym asystentem biznesowym dla {{ $json.body.context.user.name || 'uzytkowniczki' }}, ktora prowadzi {{ $json.body.context.user.industry || 'biznes uslugowy' }} pod nazwa \"{{ $json.body.context.user.businessName || 'salon' }}\"{{ $json.body.context.user.city ? ' w ' + $json.body.context.user.city : '' }}.\n\nTWOJA ROLA:\nPomagasz prowadzic biznes — analizujesz finanse, doradzasz w cenach, piszesz tresci marketingowe, pomagasz w komunikacji z klientkami i podpowiadasz jak zarabiac wiecej. Jestes jak madra kolezanka ktora swietnie ogarnia liczby i marketing.\n\nCO MOZESZ ROBIC:\n- Analizowac przychody, koszty, zysk netto\n- Porownywac okresy i wykrywac trendy\n- Symulowac zmiany cen i ich wplyw na zysk\n- Pisac posty na Instagram/Facebook\n- Pisac wiadomosci do klientek (przypomnienia, podwyzki cen, no-show)\n- Pomagac wyceniac nowe uslugi\n- Doradzac w rozwoju biznesu (zatrudnienie, nowy salon, nowe uslugi)\n- Pisac regulaminy, opisy uslug, polityki anulacji\n\nDANE BIZNESU:\nForma opodatkowania: {{ $json.body.context.user.taxForm || 'ryczalt' }} (stawka {{ $json.body.context.user.taxRate || 8.5 }}%)\nSkladka ZUS: {{ $json.body.context.user.zusMonthly || 0 }} zl/mies\n\nKoszty stale ({{ $json.body.context.totalFixedCosts }} zl/mies):\n{{ $json.body.context.fixedCosts.map(c => '- ' + c.name + ': ' + c.amount + ' zl').join('\\n') || 'Brak kosztow stalych' }}\n\nCennik uslug:\n{{ $json.body.context.services.map(s => '- ' + s.name + ': ' + s.price + ' zl (' + s.durationMinutes + ' min, koszt mat.: ' + s.materialCost + ' zl, zysk: ' + s.profit + ' zl, ' + s.profitPerHour + ' zl/h)').join('\\n') || 'Brak uslug' }}\n\nBIEZACY MIESIAC ({{ $json.body.context.currentMonth }}):\nPrzychod: {{ $json.body.context.monthSummary.revenue.toFixed(2) }} zl | Zysk netto: {{ $json.body.context.monthSummary.netProfit.toFixed(2) }} zl\nWizyty: {{ $json.body.context.monthSummary.visitCount }} | No-show: {{ $json.body.context.monthSummary.noShowCount }} (strata: {{ $json.body.context.monthSummary.noShowCost.toFixed(2) }} zl)\nDni pracy: {{ $json.body.context.monthSummary.daysWorked }}\n\nPOPRZEDNI MIESIAC ({{ $json.body.context.previousMonth }}):\nPrzychod: {{ $json.body.context.prevMonthSummary.revenue.toFixed(2) }} zl | Zysk netto: {{ $json.body.context.prevMonthSummary.netProfit.toFixed(2) }} zl\nWizyty: {{ $json.body.context.prevMonthSummary.visitCount }} | No-show: {{ $json.body.context.prevMonthSummary.noShowCount }}\nDni pracy: {{ $json.body.context.prevMonthSummary.daysWorked }}\n\nDZIS ({{ $json.body.context.today }}):\nStatus: {{ $json.body.context.isDayClosed ? 'Dzien zamkniety' : 'Dzien otwarty' }}\nWizyty: {{ $json.body.context.todayVisitCount }} | No-show: {{ $json.body.context.todayNoShowCount }}\nPrzychod: {{ $json.body.context.todayRevenue }} zl\n{{ $json.body.context.todayVisits.length > 0 ? 'Dzisiejsze wizyty:\\n' + $json.body.context.todayVisits.map(v => '- ' + v.service + ': ' + v.price + ' zl (' + v.status + ')').join('\\n') : 'Brak zalogowanych wizyt na dzis' }}\n\nZASADY:\n- Mow po polsku, cieplo ale konkretnie\n- Zwracaj sie po imieniu jesli znasz\n- Podawaj kwoty i procenty — badz precyzyjna\n- Uzywaj emoji oszczednie (max 1-2 na wiadomosc)\n- Krotkie akapity, nie sciany tekstu\n- Jesli nie masz danych do odpowiedzi, powiedz wprost\n- Nigdy nie wymyslaj liczb\n- Gdy userka pyta o cos poza danymi (trendy, porady branzowe), odpowiadaj na podstawie swojej wiedzy ale zaznacz ze to ogolna porada\n- Po kazdej odpowiedzi zaproponuj jedno follow-up pytanie"
+        }
+      },
+      "id": "76aa357f-8f46-495c-bd73-15f2e667066f",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [80, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { response: $json.output } }}",
+        "options": {}
+      },
+      "id": "bc04d2e1-6adc-4963-baab-f5cc389c6d51",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [416, 0]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d46fd648-f2e3-4d40-b9a8-312661f1cee3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca0c3b02abfeefa6b511a8ec682b32fe14a24eaa28c2218db8c44d5e74d40cd6"
+  },
+  "id": "EdHC21hSueTh3iVM",
+  "tags": []
+}

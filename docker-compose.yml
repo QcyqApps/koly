@@ -1,0 +1,45 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: aicosttracker-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pp_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword123}
+      POSTGRES_DB: aicosttracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pp_user -d aicosttracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: aicosttracker-n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/Warsaw
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  n8n_data:
+
+networks:
+  internal:
+    driver: bridge

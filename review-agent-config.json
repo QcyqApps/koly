@@ -1,0 +1,266 @@
+{
+  "spec_path": "./docs/profit-tracker-mvp-spec.md",
+  "project_root": "/Users/qcyqapps/Desktop/Dev/ai-cost-tracker",
+  "base_url": "http://localhost:5173",
+  "api_base_url": "http://localhost:3000/api",
+
+  "layers": {
+    "api": {
+      "enabled": true,
+      "timeout_ms": 5000,
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/auth/login",
+          "expect_status": 401,
+          "description": "Login bez danych - powinien zwrócić 401"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/register",
+          "expect_status": 400,
+          "description": "Rejestracja bez danych - powinien zwrócić 400"
+        },
+        {
+          "method": "POST",
+          "path": "/auth/logout",
+          "expect_status": 401,
+          "description": "Wylogowanie bez auth - powinien zwrócić 401"
+        },
+        {
+          "method": "GET",
+          "path": "/auth/me",
+          "expect_status": 401,
+          "description": "Dane użytkownika bez auth - powinien zwrócić 401"
+        },
+        {
+          "method": "GET",
+          "path": "/services",
+          "expect_status": 401,
+          "description": "Lista usług bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/services/active",
+          "expect_status": 401,
+          "description": "Aktywne usługi bez auth"
+        },
+        {
+          "method": "POST",
+          "path": "/services",
+          "expect_status": 401,
+          "description": "Dodanie usługi bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/fixed-costs",
+          "expect_status": 401,
+          "description": "Koszty stałe bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/fixed-costs/total",
+          "expect_status": 401,
+          "description": "Suma kosztów bez auth"
+        },
+        {
+          "method": "POST",
+          "path": "/fixed-costs",
+          "expect_status": 401,
+          "description": "Dodanie kosztu bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/visits",
+          "expect_status": 401,
+          "description": "Lista wizyt bez auth"
+        },
+        {
+          "method": "POST",
+          "path": "/visits",
+          "expect_status": 401,
+          "description": "Dodanie wizyty bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/visits/summary/2026-03-18",
+          "expect_status": 401,
+          "description": "Podsumowanie dnia bez auth"
+        },
+        {
+          "method": "POST",
+          "path": "/day/close",
+          "expect_status": 401,
+          "description": "Zamknięcie dnia bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/day/benchmark",
+          "expect_status": 401,
+          "description": "Benchmark branżowy bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/day/goal-progress",
+          "expect_status": 401,
+          "description": "Postęp celu bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/day/monthly-trend",
+          "expect_status": 401,
+          "description": "Trend miesięczny bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboard/suggestion",
+          "expect_status": 401,
+          "description": "Sugestia AI bez auth"
+        },
+        {
+          "method": "GET",
+          "path": "/gallery",
+          "expect_status": 401,
+          "description": "Galeria bez auth"
+        },
+        {
+          "method": "POST",
+          "path": "/gallery/upload",
+          "expect_status": 401,
+          "description": "Upload zdjęcia bez auth"
+        },
+        {
+          "method": "POST",
+          "path": "/chat/send",
+          "expect_status": 401,
+          "description": "Wysłanie wiadomości bez auth"
+        }
+      ]
+    },
+    "ui": {
+      "enabled": true,
+      "viewport": { "width": 390, "height": 844 },
+      "timeout_ms": 30000,
+      "pages": [
+        { "path": "/auth/signin", "name": "Logowanie" },
+        { "path": "/auth/register", "name": "Rejestracja" },
+        { "path": "/app", "name": "Dashboard" },
+        { "path": "/app/chat", "name": "Chat z Koly" },
+        { "path": "/app/visits", "name": "Wizyty" },
+        { "path": "/app/gallery", "name": "Galeria" },
+        { "path": "/app/settings", "name": "Ustawienia" }
+      ],
+      "flows": [
+        {
+          "name": "Formularz logowania",
+          "steps": [
+            { "action": "goto", "value": "/auth/signin" },
+            { "action": "screenshot" },
+            { "action": "fill", "selector": "input[type='email']", "value": "a.sliwka92@gmail.com" },
+            { "action": "fill", "selector": "input[type='password']", "value": "lolek155" },
+            { "action": "screenshot" },
+            { "action": "click", "selector": "button[type='submit']" },
+            { "action": "wait", "selector": "body", "timeout": 3000 },
+            { "action": "screenshot" }
+          ]
+        },
+        {
+          "name": "Formularz rejestracji",
+          "steps": [
+            { "action": "goto", "value": "/auth/register" },
+            { "action": "screenshot" },
+            { "action": "fill", "selector": "input[type='email']", "value": "newuser2@example.com" },
+            { "action": "fill", "selector": "input[type='password']", "value": "testpassword123" },
+            { "action": "screenshot" }
+          ]
+        },
+        {
+          "name": "Dashboard - widok główny",
+          "steps": [
+            { "action": "goto", "value": "/auth/signin" },
+            { "action": "fill", "selector": "input[type='email']", "value": "a.sliwka92@gmail.com" },
+            { "action": "fill", "selector": "input[type='password']", "value": "lolek155" },
+            { "action": "click", "selector": "button[type='submit']" },
+            { "action": "wait", "selector": "body", "timeout": 3000 },
+            { "action": "screenshot" },
+            { "action": "wait", "selector": "[data-testid='dashboard'], .dashboard, main", "timeout": 5000 },
+            { "action": "screenshot" }
+          ]
+        },
+        {
+          "name": "Wizyty - logowanie wizyt",
+          "steps": [
+            { "action": "goto", "value": "/auth/signin" },
+            { "action": "fill", "selector": "input[type='email']", "value": "a.sliwka92@gmail.com" },
+            { "action": "fill", "selector": "input[type='password']", "value": "lolek155" },
+            { "action": "click", "selector": "button[type='submit']" },
+            { "action": "wait", "selector": "body", "timeout": 3000 },
+            { "action": "goto", "value": "/app/visits" },
+            { "action": "wait", "selector": "body", "timeout": 2000 },
+            { "action": "screenshot" }
+          ]
+        },
+        {
+          "name": "Chat z Koly",
+          "steps": [
+            { "action": "goto", "value": "/auth/signin" },
+            { "action": "fill", "selector": "input[type='email']", "value": "a.sliwka92@gmail.com" },
+            { "action": "fill", "selector": "input[type='password']", "value": "lolek155" },
+            { "action": "click", "selector": "button[type='submit']" },
+            { "action": "wait", "selector": "body", "timeout": 3000 },
+            { "action": "goto", "value": "/app/chat" },
+            { "action": "wait", "selector": "body", "timeout": 2000 },
+            { "action": "screenshot" }
+          ]
+        },
+        {
+          "name": "Galeria zdjęć",
+          "steps": [
+            { "action": "goto", "value": "/auth/signin" },
+            { "action": "fill", "selector": "input[type='email']", "value": "a.sliwka92@gmail.com" },
+            { "action": "fill", "selector": "input[type='password']", "value": "lolek155" },
+            { "action": "click", "selector": "button[type='submit']" },
+            { "action": "wait", "selector": "body", "timeout": 3000 },
+            { "action": "goto", "value": "/app/gallery" },
+            { "action": "wait", "selector": "body", "timeout": 2000 },
+            { "action": "screenshot" }
+          ]
+        },
+        {
+          "name": "Ustawienia",
+          "steps": [
+            { "action": "goto", "value": "/auth/signin" },
+            { "action": "fill", "selector": "input[type='email']", "value": "a.sliwka92@gmail.com" },
+            { "action": "fill", "selector": "input[type='password']", "value": "lolek155" },
+            { "action": "click", "selector": "button[type='submit']" },
+            { "action": "wait", "selector": "body", "timeout": 3000 },
+            { "action": "goto", "value": "/app/settings" },
+            { "action": "wait", "selector": "body", "timeout": 2000 },
+            { "action": "screenshot" }
+          ]
+        }
+      ]
+    },
+    "code": {
+      "enabled": true,
+      "include": [
+        "frontend/src/**/*.tsx",
+        "frontend/src/**/*.ts",
+        "backend/src/**/*.ts"
+      ],
+      "exclude": [
+        "node_modules",
+        "dist",
+        "build",
+        "**/*.spec.ts",
+        "**/*.test.ts",
+        "**/*.d.ts"
+      ]
+    }
+  },
+
+  "output": {
+    "path": "./REVIEW-REPORT.md",
+    "results_dir": "./review-results"
+  }
+}

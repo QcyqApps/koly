@@ -16,15 +16,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install production dependencies + prisma CLI
+# Install production dependencies + tools for prisma config
 COPY package*.json ./
-RUN npm ci --only=production && npm install -g prisma
+RUN npm ci --only=production && \
+    npm install dotenv typescript ts-node @types/node
 
 # Copy built files and prisma
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY tsconfig.json ./
 
 # Create uploads directory
 RUN mkdir -p uploads
@@ -32,4 +35,4 @@ RUN mkdir -p uploads
 EXPOSE 3000
 
 # Run migrations and start app
-CMD sh -c "prisma migrate deploy --schema=prisma/schema.prisma && node dist/main.js"
+CMD sh -c "npx prisma migrate deploy && node dist/main.js"

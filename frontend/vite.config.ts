@@ -5,6 +5,7 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: '/koly/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -12,13 +13,15 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
+      '/koly/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/koly\/api/, ''),
       },
-      '/uploads': {
+      '/koly/uploads': {
         target: 'http://localhost:3000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/koly/, ''),
       },
     },
   },

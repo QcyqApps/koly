@@ -7,7 +7,7 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
 }
 
 const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: '/koly/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -37,7 +37,7 @@ apiClient.interceptors.response.use(
 
       // Try to refresh token (cookie is sent automatically)
       try {
-        await axios.post('/api/auth/refresh', null, {
+        await axios.post('/koly/api/auth/refresh', null, {
           withCredentials: true,
         });
 
@@ -46,7 +46,7 @@ apiClient.interceptors.response.use(
       } catch {
         // Refresh failed - logout and redirect to login
         useAuthStore.getState().logout();
-        window.location.href = '/auth/signin';
+        window.location.href = '/koly/auth/signin';
         return Promise.reject(error);
       }
     }

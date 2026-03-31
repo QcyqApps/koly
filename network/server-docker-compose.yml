@@ -1,0 +1,238 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: tidle_prod
+      POSTGRES_USER: tidle
+      POSTGRES_PASSWORD: tidlepassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    container_name: backend
+    build:
+      context: ./tidle-game-server
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://tidle:tidlepassword@postgres:5432/tidle_prod?schema=public
+      NODE_ENV: production
+      QCYQ_APPS_ID: "5e1cf20b-862e-4d88-ac59-90a3871c3f8d"
+    ports:
+      - "3000:3000"
+
+  tidle-website:
+    container_name: tidle-website
+    build:
+      context: ./tidle-website
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:5000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  colyseus:
+    container_name: colyseus
+    build:
+      context: ./tidle-ws-server
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: production
+    ports:
+      - "2567:2567"
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/html:/var/www/html
+      - certbot-etc:/etc/letsencrypt
+      - certbot-webroot:/var/www/certbot
+      - ./nginx/logs:/var/log/nginx
+      - ./tidle-nginx-certs:/etc/nginx/certs
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - /home/ubuntu/ai-agents/landing-page:/var/www/landing-page:ro
+      - /home/ubuntu/ai-agents/ecommerce-customer-service-agent/widget:/var/www/ecommerce-widget:ro
+      - koly-static:/var/www/koly:ro
+    depends_on:
+      - colyseus
+      - koly-backend
+      - koly-frontend
+    networks:
+      - default
+      - shared-proxy
+    restart: always
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      DB_TYPE: postgres
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: tidle_prod
+      DB_POSTGRESDB_USER: tidle
+      DB_POSTGRESDB_PASSWORD: tidlepassword
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: admin
+      N8N_BASIC_AUTH_PASSWORD: supersecret
+      GENERIC_TIMEZONE: Europe/Warsaw
+      N8N_PATH: /n8n/
+      WEBHOOK_URL: https://tidle.ovh/n8n/
+      N8N_RUNNERS_ENABLED: true
+    depends_on:
+      - postgres
+    networks:
+      - default
+      - shared-proxy
+
+  redis:
+    image: redis:7
+    restart: always
+    container_name: redis_container
+    ports:
+      - "6379:6379"
+
+  # =============================================
+  # Koly - Business Assistant App
+  # =============================================
+  koly-postgres:
+    image: postgres:16
+    container_name: koly-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: koly
+      POSTGRES_PASSWORD: ${KOLY_POSTGRES_PASSWORD:-kolypassword}
+      POSTGRES_DB: koly
+    volumes:
+      - koly-pgdata:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U koly -d koly"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  koly-backend:
+    container_name: koly-backend
+    build:
+      context: /home/ubuntu/koly/backend
+    restart: unless-stopped
+    depends_on:
+      koly-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://koly:${KOLY_POSTGRES_PASSWORD:-kolypassword}@koly-postgres:5432/koly?schema=public
+      JWT_SECRET: ${KOLY_JWT_SECRET}
+      JWT_REFRESH_SECRET: ${KOLY_JWT_REFRESH_SECRET}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      NODE_ENV: production
+    volumes:
+      - koly-uploads:/app/uploads
+    networks:
+      - default
+      - shared-proxy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  koly-frontend:
+    container_name: koly-frontend
+    build:
+      context: /home/ubuntu/koly/frontend
+    volumes:
+      - koly-static:/output
+    restart: "no"
+
+  loki:
+    image: grafana/loki:2.9.4
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - /etc/machine-id:/etc/machine-id
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail-config.yml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana-oss:10.3.1
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - loki
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend
+
+# Odpalamy tylko raz po certa - zrób w makefile
+# Cert skończy się 2025-11-13 - wtedy odkomentować, odpalić i on sobie przedłuży ale zmieniłem w nginx conf na inne ścieżki, więc można skopiować z wolumeny w /etc/docker/volumes
+# i podbmienic albo wrócić do certa bota bo samsię pokręciłem
+#  certbot:
+#    image: certbot/certbot
+#    container_name: certbot
+#    volumes:
+#      - certbot-etc:/etc/letsencrypt
+#      - certbot-webroot:/var/www/certbot
+#    command: >
+#      certonly --webroot --webroot-path=/var/www/certbot
+#      --email a.sliwka92@gmail.com --agree-tos --no-eff-email
+#      -d tidle.ovh
+
+networks:
+  default:
+  shared-proxy:
+    external: true
+
+volumes:
+  pgdata:
+  certbot-etc:
+  certbot-webroot:
+  certbot-var:
+  grafana-storage:
+  koly-pgdata:
+  koly-uploads:
+  koly-static:

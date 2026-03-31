@@ -71,7 +71,7 @@ function DemoModeHandler() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename="/koly">
         <DemoModeHandler />
         <Routes>
           {/* Public routes */}

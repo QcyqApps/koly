@@ -20,7 +20,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Verify build output
-RUN echo "=== Build output ===" && ls -la dist/ && ls -la dist/main.js
+RUN echo "=== Build output ===" && ls -la dist/src/ && ls -la dist/src/main.js
 
 # Production image
 FROM node:20-alpine
@@ -46,8 +46,8 @@ COPY tsconfig.json ./
 RUN mkdir -p uploads
 
 # Verify files exist
-RUN echo "=== Production files ===" && ls -la dist/
+RUN echo "=== Production files ===" && ls -la dist/src/
 
 EXPOSE 3000
 
-CMD sh -c "npx prisma migrate deploy && node dist/main.js"
+CMD sh -c "npx prisma migrate deploy && node dist/src/main.js"
